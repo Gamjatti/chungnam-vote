@@ -8,37 +8,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Test storage providers thoroughly
+      - name: Test CORS-friendly storage candidates
         run: |
           set +e
           {
-            echo "===== kvdb 403 body ====="
-            B=$(curl -s -d 'email=chungnam.vote@gmail.com' https://kvdb.io | tr -d '[:space:]')
-            echo "bucket: $B"
-            curl -s -X POST "https://kvdb.io/${B}/votes" -d '{"votes":[]}'
+            echo "########## restful-api.dev ##########"
+            echo "--- create ---"
+            RESP=$(curl -s -D /tmp/h1 -H "Origin: https://gamjatti.github.io" -H "Content-Type: application/json" -X POST https://api.restful-api.dev/objects -d '{"name":"chungnam-vote","data":{"votes":[]}}')
+            cat /tmp/h1; echo "$RESP"
+            RID=$(echo "$RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
+            echo "RID=$RID"
+            echo "--- GET headers ---"
+            curl -s -D - -o /dev/null -H "Origin: https://gamjatti.github.io" "https://api.restful-api.dev/objects/$RID"
+            echo "--- PUT ---"
+            curl -s -D - -H "Origin: https://gamjatti.github.io" -H "Content-Type: application/json" -X PUT "https://api.restful-api.dev/objects/$RID" -d '{"name":"chungnam-vote","data":{"votes":[{"name":"t","picks":["t1","t2"]}]}}' -o /tmp/putbody
+            cat /tmp/putbody; echo ""
+            echo "--- OPTIONS preflight PUT ---"
+            curl -s -D - -o /dev/null -X OPTIONS -H "Origin: https://gamjatti.github.io" -H "Access-Control-Request-Method: PUT" -H "Access-Control-Request-Headers: content-type" "https://api.restful-api.dev/objects/$RID"
+            echo "RESTFUL_ID_FINAL=$RID"
+
+            echo "########## extendsclass ##########"
+            echo "--- create ---"
+            curl -s -D - -H "Origin: https://gamjatti.github.io" -H "Content-Type: application/json" -X POST https://json.extendsclass.com/bin -d '{"votes":[]}'
             echo ""
-
-            echo "===== jsonblob create (headers+body) ====="
-            curl -s -D - -H "Origin: https://gamjatti.github.io" -H "Content-Type: application/json" -X POST https://jsonblob.com/api/jsonBlob -d '{"votes":[]}' -o /tmp/jb_body.txt
-            cat /tmp/jb_body.txt; echo ""
-
-            JBLOC=$(curl -s -D - -H "Content-Type: application/json" -X POST https://jsonblob.com/api/jsonBlob -d '{"votes":[]}' -o /dev/null | grep -i '^location:' | tr -d '\r' | awk '{print $2}')
-            JBID=$(basename "$JBLOC")
-            echo "JB_ID=$JBID"
-
-            echo "===== jsonblob GET headers ====="
-            curl -s -D - -o /dev/null -H "Origin: https://gamjatti.github.io" "https://jsonblob.com/api/jsonBlob/${JBID}"
-            echo "===== jsonblob PUT headers ====="
-            curl -s -D - -o /dev/null -H "Origin: https://gamjatti.github.io" -H "Content-Type: application/json" -X PUT "https://jsonblob.com/api/jsonBlob/${JBID}" -d '{"votes":[{"name":"test","picks":["t1","t2"]}]}'
-            echo "===== jsonblob OPTIONS preflight (PUT) ====="
-            curl -s -D - -o /dev/null -X OPTIONS -H "Origin: https://gamjatti.github.io" -H "Access-Control-Request-Method: PUT" -H "Access-Control-Request-Headers: content-type" "https://jsonblob.com/api/jsonBlob/${JBID}"
-            echo "===== jsonblob OPTIONS preflight (POST create) ====="
-            curl -s -D - -o /dev/null -X OPTIONS -H "Origin: https://gamjatti.github.io" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type" "https://jsonblob.com/api/jsonBlob"
-            echo "JB_ID_FINAL=$JBID"
           } > cors-report.txt 2>&1
 
           git config user.name "storage-bot"
           git config user.email "bot@local"
           git add cors-report.txt
-          git commit -m "chore: storage test report"
+          git commit -m "chore: candidate storage test"
           git push
