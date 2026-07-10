@@ -1,26 +1,34 @@
 name: setup-storage
 on: workflow_dispatch
+permissions:
+  contents: write
 
 jobs:
   setup:
     runs-on: ubuntu-latest
     steps:
-      - name: Create kvdb bucket and verify CORS
+      - uses: actions/checkout@v4
+      - name: Create kvdb bucket, verify CORS, commit results
         run: |
-          echo "== kvdb create =="
+          set -e
           BUCKET=$(curl -s -d 'email=chungnam.vote@gmail.com' https://kvdb.io | tr -d '[:space:]')
-          echo "BUCKET_ID=${BUCKET}"
+          curl -s -X POST "https://kvdb.io/${BUCKET}/votes" -d '{"votes":[]}' > /dev/null
 
-          echo "== kvdb set votes key =="
-          curl -s -X POST "https://kvdb.io/${BUCKET}/votes" -d '{"votes":[]}'
-          echo ""
+          {
+            echo "BUCKET_ID=${BUCKET}"
+            echo "--- kvdb GET headers ---"
+            curl -s -D - -o /dev/null -H "Origin: https://gamjatti.github.io" "https://kvdb.io/${BUCKET}/votes"
+            echo "--- kvdb POST headers ---"
+            curl -s -D - -o /dev/null -H "Origin: https://gamjatti.github.io" -X POST "https://kvdb.io/${BUCKET}/votes" -d '{"votes":[]}'
+            echo "--- kvdb GET body ---"
+            curl -s "https://kvdb.io/${BUCKET}/votes"
+            echo ""
+          } > cors-report.txt
 
-          echo "== kvdb GET with response headers =="
-          curl -s -D - -H "Origin: https://gamjatti.github.io" "https://kvdb.io/${BUCKET}/votes"
-          echo ""
+          echo "const FIXED_ROOM = \"k_${BUCKET}\";" > room.js
 
-          echo "== kvdb POST with response headers =="
-          curl -s -D - -o /dev/null -H "Origin: https://gamjatti.github.io" -X POST "https://kvdb.io/${BUCKET}/votes" -d '{"votes":[]}'
-
-          echo "== jsonblob create with response headers =="
-          curl -s -D - -o /dev/null -H "Origin: https://gamjatti.github.io" -H "Content-Type: application/json" -X POST https://jsonblob.com/api/jsonBlob -d '{"votes":[]}' || true
+          git config user.name "storage-bot"
+          git config user.email "bot@local"
+          git add cors-report.txt room.js
+          git commit -m "chore: provision vote storage"
+          git push
