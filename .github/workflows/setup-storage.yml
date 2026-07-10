@@ -8,27 +8,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Create kvdb bucket, verify CORS, commit results
+      - name: Test storage providers thoroughly
         run: |
-          set -e
-          BUCKET=$(curl -s -d 'email=chungnam.vote@gmail.com' https://kvdb.io | tr -d '[:space:]')
-          curl -s -X POST "https://kvdb.io/${BUCKET}/votes" -d '{"votes":[]}' > /dev/null
-
+          set +e
           {
-            echo "BUCKET_ID=${BUCKET}"
-            echo "--- kvdb GET headers ---"
-            curl -s -D - -o /dev/null -H "Origin: https://gamjatti.github.io" "https://kvdb.io/${BUCKET}/votes"
-            echo "--- kvdb POST headers ---"
-            curl -s -D - -o /dev/null -H "Origin: https://gamjatti.github.io" -X POST "https://kvdb.io/${BUCKET}/votes" -d '{"votes":[]}'
-            echo "--- kvdb GET body ---"
-            curl -s "https://kvdb.io/${BUCKET}/votes"
+            echo "===== kvdb 403 body ====="
+            B=$(curl -s -d 'email=chungnam.vote@gmail.com' https://kvdb.io | tr -d '[:space:]')
+            echo "bucket: $B"
+            curl -s -X POST "https://kvdb.io/${B}/votes" -d '{"votes":[]}'
             echo ""
-          } > cors-report.txt
 
-          echo "const FIXED_ROOM = \"k_${BUCKET}\";" > room.js
+            echo "===== jsonblob create (headers+body) ====="
+            curl -s -D - -H "Origin: https://gamjatti.github.io" -H "Content-Type: application/json" -X POST https://jsonblob.com/api/jsonBlob -d '{"votes":[]}' -o /tmp/jb_body.txt
+            cat /tmp/jb_body.txt; echo ""
+
+            JBLOC=$(curl -s -D - -H "Content-Type: application/json" -X POST https://jsonblob.com/api/jsonBlob -d '{"votes":[]}' -o /dev/null | grep -i '^location:' | tr -d '\r' | awk '{print $2}')
+            JBID=$(basename "$JBLOC")
+            echo "JB_ID=$JBID"
+
+            echo "===== jsonblob GET headers ====="
+            curl -s -D - -o /dev/null -H "Origin: https://gamjatti.github.io" "https://jsonblob.com/api/jsonBlob/${JBID}"
+            echo "===== jsonblob PUT headers ====="
+            curl -s -D - -o /dev/null -H "Origin: https://gamjatti.github.io" -H "Content-Type: application/json" -X PUT "https://jsonblob.com/api/jsonBlob/${JBID}" -d '{"votes":[{"name":"test","picks":["t1","t2"]}]}'
+            echo "===== jsonblob OPTIONS preflight (PUT) ====="
+            curl -s -D - -o /dev/null -X OPTIONS -H "Origin: https://gamjatti.github.io" -H "Access-Control-Request-Method: PUT" -H "Access-Control-Request-Headers: content-type" "https://jsonblob.com/api/jsonBlob/${JBID}"
+            echo "===== jsonblob OPTIONS preflight (POST create) ====="
+            curl -s -D - -o /dev/null -X OPTIONS -H "Origin: https://gamjatti.github.io" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type" "https://jsonblob.com/api/jsonBlob"
+            echo "JB_ID_FINAL=$JBID"
+          } > cors-report.txt 2>&1
 
           git config user.name "storage-bot"
           git config user.email "bot@local"
-          git add cors-report.txt room.js
-          git commit -m "chore: provision vote storage"
+          git add cors-report.txt
+          git commit -m "chore: storage test report"
           git push
