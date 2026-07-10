@@ -152,20 +152,8 @@
 
 <div class="wrap">
 
-  <!-- 투표방 만들기 (방장용) -->
-  <section id="viewCreate" class="hidden">
-    <h1>충남의 소리,<br><em>투표방</em>을 만들어주세요</h1>
-    <p class="sub">방을 만들면 공유 링크가 생겨요. 그 링크를 팀원들에게 보내면 5명이 각자 2곡씩 픽할 수 있습니다.</p>
-    <button class="btn" id="createBtn">투표방 만들기</button>
-    <div class="share hidden" id="shareBox">
-      <input id="shareUrl" readonly>
-      <button id="copyBtn">복사</button>
-    </div>
-    <p class="hint hidden" id="shareHint">이 링크를 카톡방에 공유하세요. 방장도 이 링크로 들어가서 투표하면 돼요.</p>
-  </section>
-
   <!-- 이름 입력 -->
-  <section id="viewGate" class="hidden">
+  <section id="viewGate">
     <h1>해가 지기 전에,<br><em>충남의 소리</em> 2곡을 골라주세요</h1>
     <p class="sub">6곡을 듣고 마음에 드는 2곡을 픽하면 끝. 5명이 모두 투표하면 해가 수평선에 닿고 결과가 공개됩니다.</p>
     <div class="gate">
@@ -210,10 +198,8 @@ const TRACKS = [
 
 const MAX_VOTERS = 5;
 const PICKS = 2;
-const KV = "https://kvdb.io";
-const JB = "https://jsonblob.com/api/jsonBlob";
+const STORE = "https://api.restful-api.dev/objects/ff8081819d82fab6019f4ba2be0d4269";
 
-let roomId = new URLSearchParams(location.search).get("v");
 let myName = "";
 let picks = [];
 let state = { votes: [] };
@@ -228,73 +214,21 @@ const toast = msg => {
   t._h = setTimeout(() => t.classList.remove("show"), 2600);
 };
 
-/* ── shared storage: kvdb(k_) 우선, jsonblob(j_) 예비 ── */
-function provider(){
-  if(roomId && roomId.startsWith("k_")) return "kv";
-  return "jb";
-}
-function rawId(){ return roomId.replace(/^[kj]_/, ""); }
-
+/* ── shared storage (고정 투표함) ── */
 async function loadState(){
-  if(provider() === "kv"){
-    const r = await fetch(KV + "/" + rawId() + "/votes?t=" + Date.now(), {cache:"no-store"});
-    if(r.status === 404){ state = { votes: [] }; return state; }
-    if(!r.ok) throw new Error("load " + r.status);
-    const txt = await r.text();
-    try{ state = JSON.parse(txt); }catch(e){ state = { votes: [] }; }
-  }else{
-    const r = await fetch(JB + "/" + rawId(), {headers:{ "Accept":"application/json" }});
-    if(!r.ok) throw new Error("load " + r.status);
-    state = await r.json();
-  }
-  if(!state || !Array.isArray(state.votes)) state = { votes: [] };
+  const r = await fetch(STORE + "?t=" + Date.now(), {cache:"no-store"});
+  if(!r.ok) throw new Error("load " + r.status);
+  const obj = await r.json();
+  state = (obj && obj.data && Array.isArray(obj.data.votes)) ? obj.data : { votes: [] };
   return state;
 }
 async function saveState(){
-  if(provider() === "kv"){
-    const r = await fetch(KV + "/" + rawId() + "/votes", {
-      method:"POST", body: JSON.stringify(state)
-    });
-    if(!r.ok) throw new Error("save " + r.status);
-  }else{
-    const r = await fetch(JB + "/" + rawId(), {
-      method:"PUT",
-      headers:{ "Content-Type":"application/json", "Accept":"application/json" },
-      body: JSON.stringify(state)
-    });
-    if(!r.ok) throw new Error("save " + r.status);
-  }
-}
-
-async function createRoom(){
-  const errs = [];
-  /* 1순위: kvdb — 버킷 생성, 응답 본문이 버킷 ID */
-  try{
-    const r = await fetch(KV + "/", {
-      method:"POST",
-      body: new URLSearchParams({ email: "chungnam.vote@gmail.com" })
-    });
-    const body = (await r.text()).trim();
-    if(r.ok && body && body.length >= 8 && !/\s/.test(body)) return "k_" + body;
-    errs.push("kv:" + r.status + ":" + body.slice(0,40));
-  }catch(e){ errs.push("kv:" + (e.message || "network")); }
-  /* 2순위: jsonblob — Location 헤더에서 ID 추출 */
-  try{
-    const r = await fetch(JB, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json", "Accept":"application/json" },
-      body: JSON.stringify({ votes: [] })
-    });
-    if(r.ok){
-      const loc = r.headers.get("Location") || r.headers.get("X-jsonblob") || "";
-      const id = loc.split("/").pop();
-      if(id) return "j_" + id;
-      errs.push("jb:no-location-header");
-    }else{
-      errs.push("jb:" + r.status);
-    }
-  }catch(e){ errs.push("jb:" + (e.message || "network")); }
-  throw new Error(errs.join(" | "));
+  const r = await fetch(STORE, {
+    method:"PUT",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ name:"chungnam-vote", data: state })
+  });
+  if(!r.ok) throw new Error("save " + r.status);
 }
 
 /* ── sun ── */
@@ -376,7 +310,7 @@ function buildTracks(){
 
 /* ── views ── */
 function show(view){
-  ["viewCreate","viewGate","viewVote","viewResult"].forEach(v => $(v).classList.toggle("hidden", v !== view));
+  ["viewGate","viewVote","viewResult"].forEach(v => $(v).classList.toggle("hidden", v !== view));
 }
 function stopAudio(){
   if(currentAudio){ currentAudio.pause(); currentAudio = null; currentCard = null; }
@@ -424,39 +358,6 @@ function startPolling(){
     try{ await loadState(); renderResults(); }catch(e){}
   }, 5000);
 }
-
-/* ── create room ── */
-$("createBtn").onclick = async () => {
-  const btn = $("createBtn");
-  btn.disabled = true; btn.textContent = "만드는 중…";
-  try{
-    const id = await createRoom();
-    roomId = id;
-    if(provider() === "kv"){ state = { votes: [] }; await saveState(); }
-    const url = location.origin + location.pathname + "?v=" + id;
-    history.replaceState(null, "", url);
-    $("shareUrl").value = url;
-    $("shareBox").classList.remove("hidden");
-    $("shareHint").classList.remove("hidden");
-    btn.textContent = "투표방 생성 완료 — 아래 링크 공유";
-    toast("투표방이 만들어졌어요");
-    setTimeout(() => { show("viewGate"); }, 400);
-    /* 링크는 게이트 화면 위에서도 계속 보이도록 게이트로 이동시키지 않고 유지 */
-  }catch(e){
-    btn.disabled = false; btn.textContent = "투표방 만들기";
-    toast("생성 실패: " + (e.message || e));
-  }
-};
-$("copyBtn").onclick = async () => {
-  try{
-    await navigator.clipboard.writeText($("shareUrl").value);
-    toast("링크가 복사됐어요");
-  }catch(e){
-    $("shareUrl").select();
-    document.execCommand("copy");
-    toast("링크가 복사됐어요");
-  }
-};
 
 /* ── flow ── */
 $("nameInput").addEventListener("input", e => {
@@ -523,18 +424,11 @@ $("resetBtn").onclick = async () => {
 /* ── init ── */
 (async () => {
   buildTracks();
-  if(!roomId){
-    show("viewCreate");
-    setSun(0);
-    return;
-  }
   try{
     await loadState();
     setSun(Math.min(state.votes.length, MAX_VOTERS));
     if(state.votes.length >= MAX_VOTERS){ show("viewResult"); renderResults(); }
-    else show("viewGate");
   }catch(e){
-    show("viewGate");
     toast("기록을 불러오지 못했어요 — 새로고침 해보세요");
   }
 })();
