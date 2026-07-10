@@ -1,0 +1,26 @@
+name: setup-storage
+on: workflow_dispatch
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create kvdb bucket and verify CORS
+        run: |
+          echo "== kvdb create =="
+          BUCKET=$(curl -s -d 'email=chungnam.vote@gmail.com' https://kvdb.io | tr -d '[:space:]')
+          echo "BUCKET_ID=${BUCKET}"
+
+          echo "== kvdb set votes key =="
+          curl -s -X POST "https://kvdb.io/${BUCKET}/votes" -d '{"votes":[]}'
+          echo ""
+
+          echo "== kvdb GET with response headers =="
+          curl -s -D - -H "Origin: https://gamjatti.github.io" "https://kvdb.io/${BUCKET}/votes"
+          echo ""
+
+          echo "== kvdb POST with response headers =="
+          curl -s -D - -o /dev/null -H "Origin: https://gamjatti.github.io" -X POST "https://kvdb.io/${BUCKET}/votes" -d '{"votes":[]}'
+
+          echo "== jsonblob create with response headers =="
+          curl -s -D - -o /dev/null -H "Origin: https://gamjatti.github.io" -H "Content-Type: application/json" -X POST https://jsonblob.com/api/jsonBlob -d '{"votes":[]}' || true
