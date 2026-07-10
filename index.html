@@ -267,28 +267,34 @@ async function saveState(){
 }
 
 async function createRoom(){
+  const errs = [];
   /* 1순위: kvdb — 버킷 생성, 응답 본문이 버킷 ID */
   try{
     const r = await fetch(KV + "/", {
       method:"POST",
-      body: new URLSearchParams({ email: "vote@chungnam.local" })
+      body: new URLSearchParams({ email: "chungnam.vote@gmail.com" })
+    });
+    const body = (await r.text()).trim();
+    if(r.ok && body && body.length >= 8 && !/\s/.test(body)) return "k_" + body;
+    errs.push("kv:" + r.status + ":" + body.slice(0,40));
+  }catch(e){ errs.push("kv:" + (e.message || "network")); }
+  /* 2순위: jsonblob — Location 헤더에서 ID 추출 */
+  try{
+    const r = await fetch(JB, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "Accept":"application/json" },
+      body: JSON.stringify({ votes: [] })
     });
     if(r.ok){
-      const id = (await r.text()).trim();
-      if(id && id.length >= 8 && !id.includes(" ")) return "k_" + id;
+      const loc = r.headers.get("Location") || r.headers.get("X-jsonblob") || "";
+      const id = loc.split("/").pop();
+      if(id) return "j_" + id;
+      errs.push("jb:no-location-header");
+    }else{
+      errs.push("jb:" + r.status);
     }
-  }catch(e){}
-  /* 2순위: jsonblob — Location 헤더에서 ID 추출 */
-  const r = await fetch(JB, {
-    method:"POST",
-    headers:{ "Content-Type":"application/json", "Accept":"application/json" },
-    body: JSON.stringify({ votes: [] })
-  });
-  if(!r.ok) throw new Error("create " + r.status);
-  const loc = r.headers.get("Location") || r.headers.get("X-jsonblob") || "";
-  const id = loc.split("/").pop();
-  if(!id) throw new Error("no id");
-  return "j_" + id;
+  }catch(e){ errs.push("jb:" + (e.message || "network")); }
+  throw new Error(errs.join(" | "));
 }
 
 /* ── sun ── */
@@ -438,7 +444,7 @@ $("createBtn").onclick = async () => {
     /* 링크는 게이트 화면 위에서도 계속 보이도록 게이트로 이동시키지 않고 유지 */
   }catch(e){
     btn.disabled = false; btn.textContent = "투표방 만들기";
-    toast("생성 실패 — 잠시 후 다시 시도해주세요");
+    toast("생성 실패: " + (e.message || e));
   }
 };
 $("copyBtn").onclick = async () => {
