@@ -1,41 +1,85 @@
-BUCKET_ID=UyDqMQ37gyxAPs7NFNvsXR
---- kvdb GET headers ---
+===== kvdb 403 body =====
+bucket: WsJkT2hRAn8LnnGimRjWKx
+email address not verified. visit https://kvdb.io/login to activate your account.
+===== jsonblob create (headers+body) =====
+HTTP/2 201 
+date: Fri, 10 Jul 2026 10:43:10 GMT
+content-type: application/json
+content-length: 12
+location: /api/jsonBlob/019f4b9f-c6b1-70d1-a6d8-c51b6790de7f
+cache-control: no-store
+etag: "0825acd5"
+cf-placement: local-LAX
+x-jsonblob-expires-at: 2026-07-11T10:43:10.293Z
+x-jsonblob-expires-at-precision: exact
+x-jsonblob-id: 019f4b9f-c6b1-70d1-a6d8-c51b6790de7f
+x-jsonblob-last-modified: 1783680190
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=nMyHTswocX2dGrlougDIYZkufs4C6VCRCIcE3izHn%2FIqe%2FcbqVeq2hFe39tlR2S9%2FQOaZcRRnIZRpjkAud87gM7ERUK6Zr15l0gDkJIwvao%2Bm5XPJJj3WsRuMhtKRss%3D"}]}
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+server: cloudflare
+cf-ray: a18ef7443ce7ff84-LAX
+alt-svc: h3=":443"; ma=86400
+
+{"votes":[]}
+JB_ID=019f4b9f-c798-7ec8-a665-8f1bae356bd8
+===== jsonblob GET headers =====
+HTTP/2 200 
+date: Fri, 10 Jul 2026 10:43:10 GMT
+content-type: application/json
+content-length: 12
+cache-control: no-store
+etag: "3b8df932"
+cf-placement: local-LAX
+x-jsonblob-expires-at: 2026-07-11T10:43:10.444Z
+x-jsonblob-expires-at-precision: exact
+x-jsonblob-id: 019f4b9f-c798-7ec8-a665-8f1bae356bd8
+x-jsonblob-last-modified: 1783680190
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=2339uwrW3YDkxMzxW%2B0W7I1p5vTsCD%2BFRRaZfAk8WtcECuqmV%2FGC6feo5XmTmRkWfb9eJd00f8YaaZmAYHxYs7b4wB7vgCO3hJMkHdfIDZciVMWHiRmYehb2ya%2BXiMk%3D"}]}
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+server: cloudflare
+cf-ray: a18ef7471ab108fa-LAX
+alt-svc: h3=":443"; ma=86400
+
+===== jsonblob PUT headers =====
+HTTP/2 200 
+date: Fri, 10 Jul 2026 10:43:11 GMT
+content-type: application/json
+content-length: 47
+cache-control: no-store
+etag: "3b8d8473"
+cf-placement: local-LAX
+x-jsonblob-expires-at: 2026-07-11T10:43:10.444Z
+x-jsonblob-expires-at-precision: exact
+x-jsonblob-id: 019f4b9f-c798-7ec8-a665-8f1bae356bd8
+x-jsonblob-last-modified: 1783680191
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=9PrD2f9G4Z7RyAMUaq50DGGHqLvVD61ymXqcPd%2BkYVMndlEsocboJ3EzeTzY3XfCyFk3PRbks%2BWpa5BolRTkQqwyaVaJeUylDr%2FM8hPaFsQt2gy%2B9rV5VfZ3GVDYaVI%3D"}]}
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+server: cloudflare
+cf-ray: a18ef748ac5bd7af-LAX
+alt-svc: h3=":443"; ma=86400
+
+===== jsonblob OPTIONS preflight (PUT) =====
 HTTP/2 404 
-server: Fly/6db84cd2 (2026-07-07)
-date: Fri, 10 Jul 2026 10:42:11 GMT
+date: Fri, 10 Jul 2026 10:43:11 GMT
 content-type: text/plain; charset=UTF-8
-content-length: 9
-x-xss-protection: 1; mode=block
-access-control-allow-origin: *
-strict-transport-security: max-age=31536000; includeSubDomains; preload
-vary: Origin
-x-content-type-options: nosniff
-x-frame-options: SAMEORIGIN
-x-ratelimit-limit: 1000
-x-ratelimit-remaining: 997
-x-ratelimit-reset: 1783683729
-x-response-time: 0.435ms
-via: 2 fly.io, 2 fly.io
-fly-request-id: 01KX5SXQRFZ7CGWPJH1ARM9BHQ-ord
+content-length: 13
+cf-placement: local-LAX
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=z7yl0mhLzIegLhu5wS4P3qRgngVVTpcndoavgSZ8hwBXXYJ0HMGzrnB6Y7pGjYOwNoRhnvodM8nSU3h86Nsx5k7iVcWtm6jdXzEFp5xVt8pAYYAcJHu%2BTO%2FUlM7R2v4%3D"}]}
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+server: cloudflare
+cf-ray: a18ef74ada97e9e1-LAX
+alt-svc: h3=":443"; ma=86400
 
---- kvdb POST headers ---
-HTTP/2 403 
-server: Fly/6db84cd2 (2026-07-07)
-date: Fri, 10 Jul 2026 10:42:11 GMT
+===== jsonblob OPTIONS preflight (POST create) =====
+HTTP/2 404 
+date: Fri, 10 Jul 2026 10:43:11 GMT
 content-type: text/plain; charset=UTF-8
-content-length: 81
-x-xss-protection: 1; mode=block
-access-control-allow-origin: *
-strict-transport-security: max-age=31536000; includeSubDomains; preload
-vary: Origin
-x-content-type-options: nosniff
-x-frame-options: SAMEORIGIN
-x-ratelimit-limit: 1000
-x-ratelimit-remaining: 996
-x-ratelimit-reset: 1783683729
-x-response-time: 0.431ms
-via: 2 fly.io, 2 fly.io
-fly-request-id: 01KX5SXR0V1N93F8DXHPA0FM5C-ord
+content-length: 13
+cf-placement: local-LAX
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=SeQrzYlYknjPiwMDTUyGomVnrvt%2FQEKPF7jHMqCIX%2B1XMbMDkWzav3VDEpSSNXfJksE%2FuQ0a5vLc3GBURsGMs5Tk7125mVwN9rQrd7oRWWd93sdLSJNTGJiz1Xgw3yI%3D"}]}
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+server: cloudflare
+cf-ray: a18ef74b4e22da81-LAX
+alt-svc: h3=":443"; ma=86400
 
---- kvdb GET body ---
-Not Found
+JB_ID_FINAL=019f4b9f-c798-7ec8-a665-8f1bae356bd8
