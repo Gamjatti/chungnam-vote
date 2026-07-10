@@ -210,7 +210,8 @@ const TRACKS = [
 
 const MAX_VOTERS = 5;
 const PICKS = 2;
-const API = "https://jsonblob.com/api/jsonBlob";
+const KV = "https://kvdb.io";
+const JB = "https://jsonblob.com/api/jsonBlob";
 
 let roomId = new URLSearchParams(location.search).get("v");
 let myName = "";
@@ -227,21 +228,67 @@ const toast = msg => {
   t._h = setTimeout(() => t.classList.remove("show"), 2600);
 };
 
-/* ── shared storage (jsonblob) ── */
+/* ── shared storage: kvdb(k_) 우선, jsonblob(j_) 예비 ── */
+function provider(){
+  if(roomId && roomId.startsWith("k_")) return "kv";
+  return "jb";
+}
+function rawId(){ return roomId.replace(/^[kj]_/, ""); }
+
 async function loadState(){
-  const r = await fetch(API + "/" + roomId, {headers:{ "Accept":"application/json" }});
-  if(!r.ok) throw new Error("load " + r.status);
-  state = await r.json();
+  if(provider() === "kv"){
+    const r = await fetch(KV + "/" + rawId() + "/votes?t=" + Date.now(), {cache:"no-store"});
+    if(r.status === 404){ state = { votes: [] }; return state; }
+    if(!r.ok) throw new Error("load " + r.status);
+    const txt = await r.text();
+    try{ state = JSON.parse(txt); }catch(e){ state = { votes: [] }; }
+  }else{
+    const r = await fetch(JB + "/" + rawId(), {headers:{ "Accept":"application/json" }});
+    if(!r.ok) throw new Error("load " + r.status);
+    state = await r.json();
+  }
   if(!state || !Array.isArray(state.votes)) state = { votes: [] };
   return state;
 }
 async function saveState(){
-  const r = await fetch(API + "/" + roomId, {
-    method:"PUT",
+  if(provider() === "kv"){
+    const r = await fetch(KV + "/" + rawId() + "/votes", {
+      method:"POST", body: JSON.stringify(state)
+    });
+    if(!r.ok) throw new Error("save " + r.status);
+  }else{
+    const r = await fetch(JB + "/" + rawId(), {
+      method:"PUT",
+      headers:{ "Content-Type":"application/json", "Accept":"application/json" },
+      body: JSON.stringify(state)
+    });
+    if(!r.ok) throw new Error("save " + r.status);
+  }
+}
+
+async function createRoom(){
+  /* 1순위: kvdb — 버킷 생성, 응답 본문이 버킷 ID */
+  try{
+    const r = await fetch(KV + "/", {
+      method:"POST",
+      body: new URLSearchParams({ email: "vote@chungnam.local" })
+    });
+    if(r.ok){
+      const id = (await r.text()).trim();
+      if(id && id.length >= 8 && !id.includes(" ")) return "k_" + id;
+    }
+  }catch(e){}
+  /* 2순위: jsonblob — Location 헤더에서 ID 추출 */
+  const r = await fetch(JB, {
+    method:"POST",
     headers:{ "Content-Type":"application/json", "Accept":"application/json" },
-    body: JSON.stringify(state)
+    body: JSON.stringify({ votes: [] })
   });
-  if(!r.ok) throw new Error("save " + r.status);
+  if(!r.ok) throw new Error("create " + r.status);
+  const loc = r.headers.get("Location") || r.headers.get("X-jsonblob") || "";
+  const id = loc.split("/").pop();
+  if(!id) throw new Error("no id");
+  return "j_" + id;
 }
 
 /* ── sun ── */
@@ -377,16 +424,9 @@ $("createBtn").onclick = async () => {
   const btn = $("createBtn");
   btn.disabled = true; btn.textContent = "만드는 중…";
   try{
-    const r = await fetch(API, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json", "Accept":"application/json" },
-      body: JSON.stringify({ votes: [] })
-    });
-    if(!r.ok) throw new Error("create " + r.status);
-    const loc = r.headers.get("Location") || "";
-    const id = loc.split("/").pop();
-    if(!id) throw new Error("no id");
+    const id = await createRoom();
     roomId = id;
+    if(provider() === "kv"){ state = { votes: [] }; await saveState(); }
     const url = location.origin + location.pathname + "?v=" + id;
     history.replaceState(null, "", url);
     $("shareUrl").value = url;
