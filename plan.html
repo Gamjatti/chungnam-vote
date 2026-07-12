@@ -88,7 +88,8 @@
 <section id="viewDone" class="hidden">
   <h1>제출 완료! <em>고마워요</em> 🌅</h1>
   <p class="sub" id="doneSub"></p>
-  <p class="qnote">집계 결과와 최종 가사는 5명이 모두 제출한 뒤 관리자가 공유할 예정이에요. 이 화면은 자동으로 갱신됩니다.</p>
+  <p class="qnote">집계 결과와 최종 가사는 5명이 모두 제출한 뒤 관리자가 공유할 예정이에요.</p>
+  <button class="btn" id="doneRefresh" style="margin-top:16px">현황 새로고침</button>
 </section>
 
 <section id="viewVote" class="hidden">
@@ -124,6 +125,7 @@
 <section id="viewResult" class="hidden">
   <h1 id="resultTitle">현재 <em>집계 현황</em></h1>
   <p class="sub" id="resultSub"></p>
+  <button class="btn" id="resRefresh" style="margin-bottom:6px">집계 새로고침</button>
   <div id="resBody"></div>
 </section>
 
@@ -186,18 +188,35 @@ const toast = msg => {
 };
 
 async function loadState(){
-  const r = await fetch(STORE + "?t=" + Date.now(), {cache:"no-store"});
-  if(!r.ok) throw new Error("load " + r.status);
-  const obj = await r.json();
-  state = (obj && obj.data && Array.isArray(obj.data.votes)) ? obj.data : { votes: [] };
-  return state;
+  let lastErr;
+  for(let i = 0; i < 3; i++){
+    try{
+      const r = await fetch(STORE + "?t=" + Date.now(), {cache:"no-store"});
+      if(!r.ok) throw new Error("load " + r.status);
+      const obj = await r.json();
+      state = (obj && obj.data && Array.isArray(obj.data.votes)) ? obj.data : { votes: [] };
+      return state;
+    }catch(e){
+      lastErr = e;
+      await new Promise(res => setTimeout(res, 1200 * (i + 1)));
+    }
+  }
+  throw lastErr;
 }
 async function saveState(){
-  const r = await fetch(STORE, {
-    method:"PUT", headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ name:"chungnam-plan", data: state })
-  });
-  if(!r.ok) throw new Error("save " + r.status);
+  for(let i = 0; i < 2; i++){
+    try{
+      const r = await fetch(STORE, {
+        method:"PUT", headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ name:"chungnam-plan", data: state })
+      });
+      if(!r.ok) throw new Error("save " + r.status);
+      return;
+    }catch(e){
+      if(i === 1) throw e;
+      await new Promise(res => setTimeout(res, 1500));
+    }
+  }
 }
 
 function setSun(n){
@@ -334,7 +353,7 @@ function renderResults(){
   $("resultTitle").innerHTML = done ? "해가 졌습니다 — <em>최종 확정</em>" : "현재 <em>집계 현황</em>";
   $("resultSub").textContent = done
     ? "5명 제출 완료. 다수결로 조립된 최종 가사입니다."
-    : (MAX_VOTERS - n) + "명 남았어요. 자동으로 갱신됩니다. (동점 시 앞 번호 우선)";
+    : (MAX_VOTERS - n) + "명 남았어요. (동점 시 앞 번호 우선)";
 
   const box = $("resBody");
   box.innerHTML = "";
@@ -415,14 +434,14 @@ function renderDone(){
     ? "5명 전원 제출 완료! 해가 수평선에 닿았어요."
     : "현재 " + n + "/" + MAX_VOTERS + "명 제출 — " + (MAX_VOTERS - n) + "명 남았어요.";
 }
-let donePoll = null;
-function startDonePolling(){
-  clearInterval(donePoll);
-  donePoll = setInterval(async () => {
-    try{ await loadState(); renderDone(); }catch(e){}
-    if(state.votes.length >= MAX_VOTERS) clearInterval(donePoll);
-  }, 5000);
-}
+function startDonePolling(){ /* 자동 폴링 제거 — 수동 새로고침 */ }
+$("doneRefresh").onclick = async () => {
+  const b = $("doneRefresh");
+  b.disabled = true; b.textContent = "확인 중…";
+  try{ await loadState(); renderDone(); toast("최신 현황으로 갱신했어요"); }
+  catch(e){ toast("일시적 오류 — 잠시 후 다시 눌러주세요"); }
+  b.disabled = false; b.textContent = "현황 새로고침";
+};
 $("adminLink").onclick = async (e) => {
   e.preventDefault();
   const code = prompt("관리자 코드를 입력하세요");
@@ -433,13 +452,14 @@ $("adminLink").onclick = async (e) => {
   window.scrollTo(0,0);
 };
 
-function startPolling(){
-  clearInterval(pollTimer);
-  pollTimer = setInterval(async () => {
-    if(state.votes.length >= MAX_VOTERS){ clearInterval(pollTimer); renderResults(); return; }
-    try{ await loadState(); renderResults(); }catch(e){}
-  }, 5000);
-}
+function startPolling(){ /* 자동 폴링 제거 — 수동 새로고침 */ }
+$("resRefresh").onclick = async () => {
+  const b = $("resRefresh");
+  b.disabled = true; b.textContent = "확인 중…";
+  try{ await loadState(); renderResults(); toast("최신 집계로 갱신했어요"); }
+  catch(e){ toast("일시적 오류 — 잠시 후 다시 눌러주세요"); }
+  b.disabled = false; b.textContent = "집계 새로고침";
+};
 
 (async () => {
   buildQuestions();
