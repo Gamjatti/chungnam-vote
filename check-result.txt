@@ -1,0 +1,6 @@
+== plan object GET ==
+{"id":"ff8081819d82fab6019f54a78d6849ef","name":"chungnam-plan","data":{"votes":[{"name":"최서연","story":"O","storyNote":"","picks":{"intro":0,"verse1":2,"pre":1,"hook":1,"verse2":2,"bridge":1},"addItem":"천안 흥타령","removeItem":"부여 궁남지","comment":"","ts":1783832541779}]}}
+HTTP:200
+== song object GET ==
+{"id":"ff8081819d82fab6019f4ba2be0d4269","name":"chungnam-vote","data":{"votes":[{"name":"서연이지롱","picks":["t6","t1"],"ts":1783680807780},{"name":"박민서","picks":["t3","t4"],"ts":1783681068605},{"name":"규민","picks":["t1","t4"],"ts":1783681126518},{"name":"꼬도리","picks":["t1","t2"],"ts":1783681389922}]}}
+HTTP:200
