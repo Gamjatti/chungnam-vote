@@ -81,7 +81,7 @@
   <h1>서해 노을 드라이브,<br><em>기획 투표</em></h1>
   <p class="sub">통합 기획안 승인(⭕/❌) + 가사 6구간 픽 + 자유 의견까지 한 번에. 5명이 다 내면 다수결로 <b>최종 가사</b>가 자동 조립됩니다. 5분이면 끝나요.</p>
   <input id="nameInput" type="text" maxlength="12" placeholder="이름 또는 닉네임" autocomplete="off">
-  <button class="btn" id="startBtn" disabled>투표 시작</button>
+  <button class="btn" id="startBtn">투표 시작</button>
   <p class="qnote" style="margin-top:14px;text-align:center"><a href="#" id="adminLink" style="color:var(--sea-line)">관리자 보기</a></p>
 </section>
 
@@ -258,11 +258,12 @@ document.querySelectorAll("#oxStory button").forEach(b => {
   };
 });
 
-$("nameInput").addEventListener("input", e => { $("startBtn").disabled = !e.target.value.trim(); });
 $("startBtn").onclick = async () => {
   myName = $("nameInput").value.trim();
+  if(!myName){ toast("이름을 입력해주세요"); return; }
   $("startBtn").disabled = true;
-  try{ await loadState(); }catch(e){ toast("불러오기 실패 — 새로고침 해주세요"); $("startBtn").disabled = false; return; }
+  try{ await loadState(); }catch(e){ toast("연결이 불안정해요 — 다시 한 번 눌러주세요"); $("startBtn").disabled = false; return; }
+  $("startBtn").disabled = false;
   if(state.votes.some(v => v.name === myName)){
     toast("이미 제출한 이름이에요");
     show("viewDone"); renderDone(); startDonePolling(); return;
