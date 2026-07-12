@@ -1,14 +1,20 @@
 name: setup-storage
 on: workflow_dispatch
+permissions:
+  contents: write
 
 jobs:
   setup:
     runs-on: ubuntu-latest
     steps:
-      - name: Create plan vote object
+      - uses: actions/checkout@v4
+      - name: Create plan vote object and commit ID
         run: |
           RES=$(curl -s -X POST "https://api.restful-api.dev/objects" \
             -H "Content-Type: application/json" \
             -d '{"name":"chungnam-plan","data":{"votes":[]}}')
           echo "$RES"
-          echo "PLAN_ID=$(echo "$RES" | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])')"
+          ID=$(echo "$RES" | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])')
+          echo "$ID" > plan-id.txt
+          git config user.name "bot" && git config user.email "bot@local"
+          git add plan-id.txt && git commit -m "chore: plan vote object id" && git push
