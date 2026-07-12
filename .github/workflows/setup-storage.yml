@@ -5,11 +5,10 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     steps:
-      - name: Reset vote object to empty
+      - name: Create plan vote object
         run: |
-          curl -s -X PUT "https://api.restful-api.dev/objects/ff8081819d82fab6019f4ba2be0d4269" \
+          RES=$(curl -s -X POST "https://api.restful-api.dev/objects" \
             -H "Content-Type: application/json" \
-            -d '{"name":"chungnam-vote","data":{"votes":[]}}'
-          echo ""
-          echo "--- verify ---"
-          curl -s "https://api.restful-api.dev/objects/ff8081819d82fab6019f4ba2be0d4269"
+            -d '{"name":"chungnam-plan","data":{"votes":[]}}')
+          echo "$RES"
+          echo "PLAN_ID=$(echo "$RES" | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])')"
