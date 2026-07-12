@@ -8,13 +8,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Create plan vote object and commit ID
+      - name: Check plan object status
         run: |
-          RES=$(curl -s -X POST "https://api.restful-api.dev/objects" \
-            -H "Content-Type: application/json" \
-            -d '{"name":"chungnam-plan","data":{"votes":[]}}')
-          echo "$RES"
-          ID=$(echo "$RES" | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])')
-          echo "$ID" > plan-id.txt
+          {
+            echo "== plan object GET =="
+            curl -s -w "\nHTTP:%{http_code}\n" "https://api.restful-api.dev/objects/ff8081819d82fab6019f54a78d6849ef"
+            echo "== song object GET =="
+            curl -s -w "\nHTTP:%{http_code}\n" "https://api.restful-api.dev/objects/ff8081819d82fab6019f4ba2be0d4269"
+          } > check-result.txt 2>&1
           git config user.name "bot" && git config user.email "bot@local"
-          git add plan-id.txt && git commit -m "chore: plan vote object id" && git push
+          git add check-result.txt && git commit -m "chore: storage check" && git push
