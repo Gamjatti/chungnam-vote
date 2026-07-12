@@ -82,6 +82,13 @@
   <p class="sub">통합 기획안 승인(⭕/❌) + 가사 6구간 픽 + 자유 의견까지 한 번에. 5명이 다 내면 다수결로 <b>최종 가사</b>가 자동 조립됩니다. 5분이면 끝나요.</p>
   <input id="nameInput" type="text" maxlength="12" placeholder="이름 또는 닉네임" autocomplete="off">
   <button class="btn" id="startBtn" disabled>투표 시작</button>
+  <p class="qnote" style="margin-top:14px;text-align:center"><a href="#" id="adminLink" style="color:var(--sea-line)">관리자 보기</a></p>
+</section>
+
+<section id="viewDone" class="hidden">
+  <h1>제출 완료! <em>고마워요</em> 🌅</h1>
+  <p class="sub" id="doneSub"></p>
+  <p class="qnote">집계 결과와 최종 가사는 5명이 모두 제출한 뒤 관리자가 공유할 예정이에요. 이 화면은 자동으로 갱신됩니다.</p>
 </section>
 
 <section id="viewVote" class="hidden">
@@ -125,6 +132,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
+const ADMIN_CODE = "noeul0712";
 const STORE = "https://api.restful-api.dev/objects/ff8081819d82fab6019f54a78d6849ef";
 const MAX_VOTERS = 5;
 const CHORUS = "바다를 넘어 시간이 깨어나\n서로 다른 빛이 하나가 되는 밤\n오래된 이야기가 리듬이 되는 곳\n지금 우리, 충남을 노래해";
@@ -196,7 +204,7 @@ function setSun(n){
   $("sun").style.top = (14 + (n / MAX_VOTERS) * 100) + "px";
   $("voteCount").textContent = n + "/" + MAX_VOTERS;
 }
-function show(v){ ["viewGate","viewVote","viewResult"].forEach(x => $(x).classList.toggle("hidden", x !== v)); }
+function show(v){ ["viewGate","viewVote","viewDone","viewResult"].forEach(x => $(x).classList.toggle("hidden", x !== v)); }
 
 /* ── 투표 UI ── */
 function buildQuestions(){
@@ -237,11 +245,12 @@ $("startBtn").onclick = async () => {
   $("startBtn").disabled = true;
   try{ await loadState(); }catch(e){ toast("불러오기 실패 — 새로고침 해주세요"); $("startBtn").disabled = false; return; }
   if(state.votes.some(v => v.name === myName)){
-    toast("이미 제출한 이름이에요 — 집계를 보여드릴게요");
-    show("viewResult"); renderResults(); startPolling(); return;
+    toast("이미 제출한 이름이에요");
+    show("viewDone"); renderDone(); startDonePolling(); return;
   }
   if(state.votes.length >= MAX_VOTERS){
-    show("viewResult"); renderResults(); return;
+    toast("투표가 마감됐어요");
+    show("viewDone"); renderDone(); return;
   }
   $("voterName").textContent = myName;
   show("viewVote");
@@ -271,7 +280,7 @@ $("submitBtn").onclick = async () => {
       await saveState();
       toast("제출 완료! 노을이 한 뼘 내려왔어요");
     }
-    show("viewResult"); renderResults(); startPolling();
+    show("viewDone"); renderDone(); startDonePolling();
     window.scrollTo(0,0);
   }catch(e){
     btn.disabled = false; btn.textContent = "제출하기";
@@ -399,6 +408,31 @@ function renderResults(){
   box.appendChild(names);
 }
 
+function renderDone(){
+  const n = state.votes.length;
+  setSun(Math.min(n, MAX_VOTERS));
+  $("doneSub").textContent = n >= MAX_VOTERS
+    ? "5명 전원 제출 완료! 해가 수평선에 닿았어요."
+    : "현재 " + n + "/" + MAX_VOTERS + "명 제출 — " + (MAX_VOTERS - n) + "명 남았어요.";
+}
+let donePoll = null;
+function startDonePolling(){
+  clearInterval(donePoll);
+  donePoll = setInterval(async () => {
+    try{ await loadState(); renderDone(); }catch(e){}
+    if(state.votes.length >= MAX_VOTERS) clearInterval(donePoll);
+  }, 5000);
+}
+$("adminLink").onclick = async (e) => {
+  e.preventDefault();
+  const code = prompt("관리자 코드를 입력하세요");
+  if(code === null) return;
+  if(code.trim() !== ADMIN_CODE){ toast("코드가 틀렸어요"); return; }
+  try{ await loadState(); }catch(err){}
+  show("viewResult"); renderResults(); startPolling();
+  window.scrollTo(0,0);
+};
+
 function startPolling(){
   clearInterval(pollTimer);
   pollTimer = setInterval(async () => {
@@ -412,7 +446,6 @@ function startPolling(){
   try{
     await loadState();
     setSun(Math.min(state.votes.length, MAX_VOTERS));
-    if(state.votes.length >= MAX_VOTERS){ show("viewResult"); renderResults(); }
   }catch(e){}
 })();
 </script>
