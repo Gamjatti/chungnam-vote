@@ -71,7 +71,7 @@
 
 <div class="sky">
   <div class="sky-label">PLAN&nbsp;&amp;&nbsp;LYRICS&nbsp;VOTE</div>
-  <div class="sky-count"><span>제출</span><b id="voteCount">0/5</b></div>
+  <div class="sky-count hidden" id="skyCount"><span>집계</span><b id="voteCount">0/5</b></div>
   <div class="sun" id="sun"></div>
 </div>
 
@@ -189,6 +189,7 @@ const toast = msg => {
 function setSun(n){
   $("sun").style.top = (14 + (Math.min(n, MAX_VOTERS) / MAX_VOTERS) * 100) + "px";
   $("voteCount").textContent = Math.min(n, MAX_VOTERS) + "/" + MAX_VOTERS;
+  $("skyCount").classList.toggle("hidden", n === 0);
 }
 function show(v){ ["viewGate","viewVote","viewDone","viewResult"].forEach(x => $(x).classList.toggle("hidden", x !== v)); }
 
